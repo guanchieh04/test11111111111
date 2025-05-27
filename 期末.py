@@ -31,77 +31,58 @@ html_temp = """
 		"""
 stc.html(html_temp)
 
-
 ###### 讀取資料
-@st.cache_data(ttl=3600, show_spinner="正在加載資料...")  ## Add the caching decorator
+@st.cache_data(ttl=3600, show_spinner="正在加載資料...")
 def load_data(path):
     df = pd.read_pickle(path)
     return df
-# ##### 讀取 excel 檔
-# df_original = pd.read_excel("kbars_2330_2022-01-01-2022-11-18.xlsx")
-
 
 ###### 選擇金融商品
 st.subheader("選擇金融商品: ")
-# choices = ['台積電: 2022.1.1 至 2024.4.9', '大台指2024.12到期: 2024.1 至 2024.4.9']
-choices = ['國泰:2023.4.17 至 2025.4.16','金融期貨FXF:2020.3.2至2025.4.14','台積電期貨CDF:2022.3.2至2025.4.14' ]
+choices = [
+    '國泰:2023.4.17 至 2025.4.16',
+    '金融期貨FXF:2020.3.2至2025.4.14',
+    '台積電期貨CDF:2022.3.2至2025.4.14'
+]
 choice = st.selectbox('選擇金融商品', choices, index=0)
-##### 读取Pickle文件
 
-
-#MXF小型臺指
-
-
-
-#4/16-4/17
+##### 讀取對應資料
 if choice == '國泰:2023.4.17 至 2025.4.16':
-    
     df_original = load_data('future_KBar_CCF.pkl')
     product_name = '國泰CCF'
-    # df_original = load_data('kbars_2330_2022-01-01-2024-04-09.pkl')
-    # df_original = load_data('kbars_2330_2022-01-01-2022-11-18.pkl')  
-    # df_original = pd.read_pickle('kbars_2330_2022-01-01-2022-11-18.pkl')
-    #df.columns  ## Index(['Unnamed: 0', 'time', 'open', 'low', 'high', 'close', 'volume','amount'], dtype='object')
-    # df_original = df_original.drop('Unnamed: 0',axis=1)
-# if choice == '大台指2024.12到期: 2024.1 至 2024.4.9':
-#     df_original = load_data('kbars_TXF202412_2024-01-01-2024-04-09.pkl')  
-
-if choice == '金融期貨FXF:2020.3.2至2025.4.14':
-    df_original = load_data('future_KBar_FXF.pkl')
-    product_name = '金融期貨FXF'
-    
-if choice == '台積電期貨CDF:2022.3.2至2025.4.14':
-    df_original = load_data('future_KBar_CDF.pkl') 
-    product_name = '台積電期貨CDF'
-   
-
-
-
-###### 選擇資料區間
-###### 選擇資料區間
-st.subheader("選擇資料時間區間")
-
-if choice == '國泰:2023.4.17 至 2025.4.16':
-    start_date = st.text_input('輸入開始日期(格式: 2023-04-17)', '2023-04-17')
-    end_date = st.text_input('輸入結束日期 (格式: 2025-04-16)', '2025-04-16')
+    min_date, max_date = datetime.date(2023, 4, 17), datetime.date(2025, 4, 16)
 
 elif choice == '金融期貨FXF:2020.3.2至2025.4.14':
-    start_date = st.text_input('輸入開始日期(格式: 2020-03-02)', '2020-03-02')
-    end_date = st.text_input('輸入結束日期 (格式: 2025-04-14)', '2025-04-14')
+    df_original = load_data('future_KBar_FXF.pkl')
+    product_name = '金融期貨FXF'
+    min_date, max_date = datetime.date(2020, 3, 2), datetime.date(2025, 4, 14)
 
 elif choice == '台積電期貨CDF:2022.3.2至2025.4.14':
-    start_date = st.text_input('輸入開始日期(格式: 2022-03-02)', '2022-03-02')
-    end_date = st.text_input('輸入結束日期 (格式: 2025-04-14)', '2025-04-14')
+    df_original = load_data('future_KBar_CDF.pkl')
+    product_name = '台積電期貨CDF'
+    min_date, max_date = datetime.date(2022, 3, 2), datetime.date(2025, 4, 14)
 
+###### 選擇資料時間區間
+st.subheader("選擇資料時間區間")
+start_date = st.date_input("輸入開始日期", min_value=min_date, max_value=max_date, value=min_date)
+end_date = st.date_input("輸入結束日期", min_value=min_date, max_value=max_date, value=max_date)
 
+# 轉為 datetime，包含當天時間
+start_dt = datetime.datetime.combine(start_date, datetime.time.min)
+end_dt = datetime.datetime.combine(end_date, datetime.time.max)
 
+###### 篩選資料
+df = df_original[(df_original['time'] >= start_dt) & (df_original['time'] <= end_dt)]
 
+###### ✅ 空值檢查，避免後續報錯
+if df.empty:
+    st.warning("⚠️ 查無資料：你選擇的時間區間內沒有任何資料，請重新選擇。")
+    st.stop()
 
+###### 顯示篩選後的資料（可選）
+st.success(f"載入資料成功，共有 {len(df)} 筆資料")
+st.dataframe(df.head(10))  # 預覽前10筆資料（可移除）
 
-start_date = datetime.datetime.strptime(start_date,'%Y-%m-%d')
-end_date = datetime.datetime.strptime(end_date,'%Y-%m-%d')
-## 使用条件筛选选择时间区间的数据
-df = df_original[(df_original['time'] >= start_date) & (df_original['time'] <= end_date)]
 
 #%%
 ####### (2) 轉化為字典 #######
