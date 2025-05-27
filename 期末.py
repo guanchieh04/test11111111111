@@ -91,12 +91,12 @@ if choice == '台積電期貨CDF:2020.3.2至2025.4.14':
 
 
 
-## 轉變為datetime object.
+
+
 start_date = datetime.datetime.strptime(start_date,'%Y-%m-%d')
 end_date = datetime.datetime.strptime(end_date,'%Y-%m-%d')
 ## 使用条件筛选选择时间区间的数据
 df = df_original[(df_original['time'] >= start_date) & (df_original['time'] <= end_date)]
-
 
 #%%
 ####### (2) 轉化為字典 #######
